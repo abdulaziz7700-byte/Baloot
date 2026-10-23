@@ -123,7 +123,7 @@ function deal(st){
   for(let s=0;s<4;s++)hands[s]=d.slice(s*5,s*5+5);
   st.phase='bid';
   st.h={id:Date.now()+'_'+rnd(1e6),hands,up:d[20],rest:d.slice(21),round:1,bi:0,bid:null,said:{},mode:null,trump:null,buyer:null,mult:1,qahwa:false,closed:false,
-        trick:[],last:null,tn:0,ab:[0,0],tw:[0,0],decl:{},cand:{},baloot:null,kq:null,projWin:null,projDone:false,result:null,dbl:null,viol:[],sawa:null};
+        trick:[],last:null,tn:0,ab:[0,0],tw:[0,0],decl:{},cand:{},baloot:null,kq:null,projWin:null,projDone:false,result:null,dbl:null,viol:[],sawa:null,log:[]};
   ev(st,'الموزع '+nm(st,st.dealer));
 }
 function turnOf(st){
@@ -210,6 +210,7 @@ function doPlay(st,seat,c,decl){
   if(h.tn===0&&!(String(seat) in h.decl))h.decl[seat]=pickDecl(st,seat,decl);
   if(!legal(h,seat).includes(c))addViol(st,{s:seat,tn:h.tn,c,why:whyIllegal(h,seat,c)});
   h.hands[seat]=h.hands[seat].filter(x=>x!==c);
+  (h.log=h.log||[]).push({s:seat,c,led:h.trick.length?su(h.trick[0].c):null});
   h.trick.push({s:seat,c});
   if(h.kq===seat&&isT(c,h)&&(rk(c)==='K'||rk(c)==='Q')&&!h.hands[seat].includes('K'+h.trump)&&!h.hands[seat].includes('Q'+h.trump)){h.baloot=seat;ev(st,nm(st,seat)+': بلوت')}
   if(h.trick.length<4){h.turn=(seat+1)%4;return}
@@ -309,19 +310,92 @@ function applyResult(st,r){
 }
 function doNext(st){if(st.phase!=='end')throw 'التوزيعة ما خلصت';st.dealer=(st.dealer+1)%4;deal(st)}
 
-/* ---------- الكمبيوتر ---------- */
+/* ---------- الكمبيوتر: يلعب على أصول البلوت ----------
+   يتذكر الورق اللي نزل، ويعرف مين خلص من أي لون، ويقرأ إشارات خويه.
+   البادي: يسحب الحكم (المشتري) ← يحل قوته (الأوراق الكبيرة) ← يشد حلة خويه ← يلعب لخويه اللون اللي يدق فيه ← يفتح من أطول لون بورقة صغيرة ويحمي العشرة.
+   اللي بعده: إذا خويه ماسك ومضمون يكبّر له بالأبناط، وإذا الخصم ماسك يأكل بأرخص ورقة، وإذا ما يقدر يرمي أصغر ورقة. */
+const DECK=SU.flatMap(s=>RANKS.map(r=>r+s));
 function botCard(st,seat){
-  const h=st.h,L=legal(h,seat),tr=h.trick,val=c=>pts(c,h),pw=c=>pow(c,h)+(isT(c,h)?100:0);
+  const h=st.h,hand=h.hands[seat],L=legal(h,seat),tr=h.trick,mate=(seat+2)%4,hokm=h.mode==='hokm',T=h.trump;
+  const log=h.log||[],played=new Set(log.map(x=>x.c));tr.forEach(t=>played.add(t.c));
+  const mine=new Set(hand);
+  const outs=s=>DECK.filter(c=>su(c)===s&&!played.has(c)&&!mine.has(c));
+  const master=c=>outs(su(c)).every(o=>pow(o,h)<pow(c,h));
+  const val=c=>pts(c,h),pw=c=>pow(c,h)+(isT(c,h)?100:0);
+  const voids={};log.forEach(x=>{if(x.led&&su(x.c)!==x.led)(voids[x.s]=voids[x.s]||{})[x.led]=1});
+  tr.forEach((t,i)=>{if(i&&su(t.c)!==su(tr[0].c))(voids[t.s]=voids[t.s]||{})[su(tr[0].c)]=1});
+  const isVoid=(s,suit)=>!!(voids[s]&&voids[s][suit]);
+  const opp=[(seat+1)%4,(seat+3)%4],trOut=hokm?outs(T).length:0;
+  const oppCut=suit=>hokm&&suit!==T&&trOut>0&&opp.some(o=>isVoid(o,suit)&&!isVoid(o,T));
+  // إشارات خويه: إذا رمى ورقة كبيرة من لون = يبيه، وإذا رمى صغيرة = ما يبيه (تنفير)
+  const want={},nowant={};
+  log.forEach(x=>{if(x.s===mate&&x.led&&su(x.c)!==x.led&&!(hokm&&su(x.c)===T)){if('ATK'.includes(rk(x.c)))want[su(x.c)]=1;else nowant[su(x.c)]=1}});
+  // خويه بدأ بلون وأكل فيه = هذي حلته
+  log.forEach((x,i)=>{if(x.s===mate&&!x.led&&!(hokm&&su(x.c)===T)&&'AT'.includes(rk(x.c)))want[su(x.c)]=1});
+  if(hokm&&team(h.buyer)===team(seat)&&h.buyer===mate)want[T]=want[T]||0;
   const low=a=>a.slice().sort((x,y)=>val(x)-val(y)||pw(x)-pw(y))[0];
+  const cheapWin=a=>a.slice().sort((x,y)=>pw(x)-pw(y)||val(x)-val(y))[0];
+  const of=(a,s)=>a.filter(c=>su(c)===s);
   if(!tr.length){
-    const aces=L.filter(x=>rk(x)==='A'&&!isT(x,h));
-    if(h.mode==='hokm'&&team(seat)===team(h.buyer)&&L.includes('J'+h.trump))return 'J'+h.trump;
-    return aces.length?aces[0]:low(L);
+    const weBuy=team(h.buyer)===team(seat);
+    if(hokm){
+      const myT=of(hand,T).sort((a,b)=>pow(b,h)-pow(a,h));
+      // يسحب الحكم: فريق المشتري يطلّع حكم الخصوم بالكبير
+      if(weBuy&&myT.length&&trOut>0&&L.includes(myT[0])){
+        if(master(myT[0]))return myT[0];
+      }
+    }
+    // يحل قوته: الأوراق الكبيرة اللي ما فوقها شي (والخصم ما يقدر يدق عليها)
+    const cash=L.filter(c=>!(hokm&&su(c)===T)&&master(c)&&val(c)>=3&&!oppCut(su(c)));
+    if(cash.length)return cash.sort((x,y)=>val(y)-val(x))[0];
+    // يشد حلة خويه
+    const ms=Object.keys(want).filter(s=>of(L,s).length&&!(hokm&&s===T&&!weBuy));
+    if(ms.length){const s=ms.sort((a,b)=>of(L,b).length-of(L,a).length)[0],cs=of(L,s);const m=cs.filter(master);return m.length?m[0]:low(cs)}
+    // خويه خالص من لون وعنده حكم: يلعب له اللون عشان يدق
+    if(hokm){const cut=SU.filter(s=>s!==T&&isVoid(mate,s)&&!isVoid(mate,T)&&of(L,s).length&&!opp.some(o=>isVoid(o,s)&&!isVoid(o,T)));if(cut.length)return low(of(L,cut[0]))}
+    // يفتح لون: ما يلعب حكم إذا هو خصم، يحمي العشرة، ويتجنب اللون اللي خويه نفّر منه
+    const okSuit=s=>{
+      if(hokm&&s===T&&!weBuy)return false;
+      const cs=of(hand,s);
+      if(cs.some(c=>rk(c)==='T')&&outs(s).some(c=>rk(c)==='A')&&cs.length<=2)return false;
+      if(nowant[s])return false;
+      return true;
+    };
+    let pool=L.filter(c=>okSuit(su(c)));
+    if(!pool.length)pool=L.filter(c=>!(hokm&&su(c)===T&&!weBuy));
+    if(!pool.length)pool=L;
+    // من أطول لون، بأصغر ورقة، وما يفتح بالشايب أو البنت إذا الإكه برا
+    const suits=[...new Set(pool.map(su))].sort((a,b)=>of(hand,b).length-of(hand,a).length||of(pool,a).reduce((v,c)=>v+val(c),0)-of(pool,b).reduce((v,c)=>v+val(c),0));
+    for(const s of suits){const cs=of(pool,s).filter(c=>!('KQ'.includes(rk(c))&&outs(s).some(o=>pow(o,h)>pow(c,h))&&of(pool,s).length>1));if(cs.length)return low(cs)}
+    return low(pool);
   }
-  if(team(trickWinner(tr,h))===team(seat))
-    return tr.length===3?L.slice().sort((x,y)=>(val(y)-(isT(y,h)?40:0))-(val(x)-(isT(x,h)?40:0)))[0]:low(L);
-  const wn=L.filter(x=>trickWinner(tr.concat([{s:seat,c:x}]),h)===seat);
-  return wn.length?wn.sort((x,y)=>pw(x)-pw(y))[0]:low(L);
+  const led=su(tr[0].c),cur=trickWinner(tr,h),curC=tr.find(t=>t.s===cur).c,pos=tr.length;
+  const inPts=tr.reduce((a,t)=>a+val(t.c),0);
+  const wins=L.filter(c=>trickWinner(tr.concat([{s:seat,c}]),h)===seat);
+  if(team(cur)===team(seat)){
+    // خويه ماسك: إذا مضمون (آخر واحد أو ورقته ما فوقها شي) يكبّر له بالأبناط
+    const sure=pos===3||(master(curC)&&(isT(curC,h)||!oppCut(led)))||(pos===2&&opp.every(o=>tr.some(t=>t.s===o)));
+    if(sure){
+      const give=L.filter(c=>!(hokm&&su(c)===T&&L.some(x=>su(x)!==T))&&!(master(c)&&rk(c)==='A'&&of(hand,su(c)).length>1));
+      const g=(give.length?give:L).slice().sort((x,y)=>val(y)-val(x)||pw(x)-pw(y));
+      return g[0];
+    }
+    // خويه ماسك بس مو مضمون: إذا عندي الورقة الكبيرة أضمن الأكلة
+    const mw=wins.filter(c=>master(c)&&(isT(c,h)||!oppCut(led))&&!(isT(c,h)&&!isT(curC,h)));
+    if(mw.length&&inPts>=10)return cheapWin(mw);
+    return low(L);
+  }
+  if(wins.length){
+    if(pos===3)return cheapWin(wins);                       // آخر واحد: ياكل بأرخص ورقة
+    if(pos===2)return cheapWin(wins);                       // خويه بدأ والخصم غطّاه: يرجّعها
+    const safe=wins.filter(c=>master(c)&&(isT(c,h)||!oppCut(led)));
+    if(safe.length)return cheapWin(safe);                   // ثاني واحد: ياكل بس إذا ورقته مضمونة
+    if(inPts>=10&&hokm&&wins.some(c=>isT(c,h)))return cheapWin(wins);
+    return low(L);
+  }
+  // ما يقدر ياكل: يرمي أقل شي، ويخلي الأوراق الكبيرة اللي تنفع بعدين
+  const keep=L.filter(c=>!master(c));
+  return low(keep.length?keep:L);
 }
 function botAct(st,seat){
   const h=st.h;
@@ -466,6 +540,14 @@ const CSS=`
 .osr.tm{background:rgba(224,184,74,.14)}.osr.me{box-shadow:inset 0 0 0 2px #e0b84a}
 .osn{width:72px;flex:0 0 auto;font-size:12.5px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .osc{flex:1;display:flex;direction:ltr;flex-wrap:wrap;gap:3px}.osc .cd{--w:clamp(34px,9.6vw,44px)}.osc .cd .ix.bt{display:none}.osc .note{color:#f1e4c8;opacity:.7}
+.felt.cmp{height:clamp(250px,66vw,310px)}
+.felt.cmp .upc{top:57%}.felt.cmp .upc .cd{--w:clamp(52px,14vw,64px)}.felt.cmp .pl.p2 .backs{display:none}
+.omute{position:absolute;top:8px;left:8px;z-index:6;width:38px;height:38px;border-radius:50%;border:1px solid rgba(241,228,200,.45);background:rgba(0,0,0,.28);color:#fff;font-size:17px;cursor:pointer;display:grid;place-items:center;padding:0}
+.pjc{display:flex;align-items:center;gap:2px;direction:ltr;background:rgba(255,250,240,.95);border-radius:8px;padding:2px 4px;box-shadow:0 2px 6px rgba(0,0,0,.3);animation:obub .3s}
+.pjc em{font-style:normal;font-size:10px;font-weight:800;color:#8a6420;margin-right:3px;direction:rtl}
+.pjc i{font-style:normal;font-weight:800;font-size:12px;color:#1d1d24;background:#fff;border:1px solid #d8cdb6;border-radius:4px;padding:1px 3px;line-height:1.2}
+.pjc i.red{color:#c0262d}
+.opnl .bt button{padding:11px 6px}
 details.rules summary{cursor:pointer;font-weight:800}details.rules li{margin:5px 0;font-size:14px;line-height:1.6}
 `;
 const stEl=document.createElement('style');stEl.textContent=CSS;document.head.appendChild(stEl);
@@ -555,11 +637,11 @@ async function act(fn,opt){
       const d=await tx.get(ref());if(!d.exists)throw 'الطاولة غير موجودة';
       const s=JSON.parse(JSON.stringify(d.data()));
       fn(s);s.ts=Date.now();
-      const allH=s.seats.every(x=>x&&!x.bot),games=db.collection('games');
+      const allH=s.seats.some(x=>x&&!x.bot),bots=s.seats.filter(x=>x&&x.bot&&!x.sub).map(x=>x.n),games=db.collection('games');
       if(s.rec&&s.phase!=='over'){if(s.recId)tx.delete(games.doc(s.recId));s.rec=false;s.recId=null}
       if(s.phase==='over'&&allH){
         const id=s.recId||games.doc().id;s.rec=true;s.recId=id;const w=s.winner;
-        tx.set(games.doc(id),{a:[s.seats[0].n,s.seats[2].n],b:[s.seats[1].n,s.seats[3].n],sa:s.score[0],sb:s.score[1],winner:w===0?'A':'B',ts:Date.now(),target:s.target,by:'أونلاين',online:true});
+        tx.set(games.doc(id),{a:[s.seats[0].n,s.seats[2].n],b:[s.seats[1].n,s.seats[3].n],sa:s.score[0],sb:s.score[1],winner:w===0?'A':'B',ts:Date.now(),target:s.target,by:'أونلاين',online:true,bots});
       }
       tx.set(ref(),JSON.parse(JSON.stringify(s)));
     });
@@ -576,7 +658,11 @@ function fx(){
   if(h.id===fxId&&cnt>fxCnt)sCard();
   fxId=h.id;fxCnt=cnt;
   const ms=mySeat(),k=BE.tkey(S);
-  if(k!==fxTurn){fxTurn=k;if(ms>=0&&BE.turnOf(S)===ms&&!first)sTurn()}
+  if(k!==fxTurn){fxTurn=k;if(ms>=0&&BE.turnOf(S)===ms){if(!first)sTurn();setTimeout(showPanel,60)}}
+}
+function showPanel(){
+  try{const el=document.querySelector('.opnl');if(!el)return;const r=el.getBoundingClientRect();
+    if(r.bottom>innerHeight-4||r.top<0)window.scrollBy({top:r.bottom-innerHeight+12,behavior:'smooth'})}catch(e){}
 }
 function openRoom(code){
   if(unsub)try{unsub()}catch(e){}
@@ -609,18 +695,20 @@ function schedule(){
     T(()=>act(guard(st=>BE.autoAct(st,t,declObj())),{noPrev:1}),lim);
     if(lim>=3000){T(()=>{if(curKey===k)sTick()},lim-2000);T(()=>{if(curKey===k)sTick()},lim-1000)}
   }else if(R.host===devId)T(()=>act(guard(st=>BE.autoAct(st,t,{})),{noPrev:1}),lim+250);
+  else if(mySeat()>=0)T(()=>act(guard(st=>BE.autoAct(st,t,{})),{noPrev:1}),lim+1500);
 }
 // الجهاز المنظم يشغّل الكمبيوتر
 function drive(){
-  if(!R||R.host!==devId||!R.h)return;
-  const h=R.h;
+  if(!R||!R.h)return;
+  const isHost=R.host===devId;if(!isHost&&mySeat()<0)return;
+  const h=R.h,extra=isHost?0:900;
   // الكمبيوتر يقيد إذا شاف غلط (بعد ما تخلص الأكلة)
   if(((R.phase==='play'&&!h.trick.length)||R.phase==='end'||R.phase==='over')&&!(h.result&&h.result.pen)){
     const v=(h.viol||[]).find(x=>x.bot);
     const cat=v?[(v.s+1)%4,(v.s+3)%4].find(s=>R.seats[s]&&R.seats[s].bot):undefined;
     if(cat!=null){
       const key='q|'+h.id;if(key===botKey)return;botKey=key;
-      setTimeout(()=>act(st=>{if(!st.h||st.h.id!==h.id||(st.h.result&&st.h.result.pen))throw SKIP;BE.doQayd(st,cat)},{noPrev:1}),300);
+      setTimeout(()=>act(st=>{if(!st.h||st.h.id!==h.id||(st.h.result&&st.h.result.pen))throw SKIP;BE.doQayd(st,cat)},{noPrev:1}),300+extra);
       return;
     }
   }
@@ -629,7 +717,7 @@ function drive(){
   if(key===botKey)return;botKey=key;
   // الكمبيوتر يلعب على طول، بس يترك لحظة قصيرة بعد اكتمال الأكلة عشان تبين الأوراق
   const wait=R.phase==='play'&&!h.trick.length&&h.last?550:60;
-  setTimeout(()=>act(st=>{if(BE.tkey(st)!==key||!(st.seats[t]&&st.seats[t].bot))throw SKIP;BE.botAct(st,t)},{noPrev:1}),wait);
+  setTimeout(()=>act(st=>{if(BE.tkey(st)!==key||!(st.seats[t]&&st.seats[t].bot))throw SKIP;BE.botAct(st,t)},{noPrev:1}),wait+extra);
 }
 
 function rulesCard(){
@@ -693,7 +781,11 @@ function tableView(){
     if(h&&h.said&&h.said[s]&&(S.phase==='bid'||S.phase==='dbl'))bub=`<span class="bub">${e2(h.said[s])}</span>`;
     if(h&&h.baloot===s&&S.phase==='play')bub+=`<span class="bub g">بلوت</span>`;
     if(h&&h.sawa&&h.sawa.s===s)bub+=`<span class="bub g">سوا</span>`;
-    let pj='';if(h&&h.projWin!=null&&team(s)===h.projWin&&(h.decl[s]||[]).length&&S.phase==='play'&&h.tn<=2)pj=`<span class="pjs">${(h.decl[s]).map(p=>PROJ_NAME[p.t]).join('، ')}</span>`;
+    let pj='';const dc=h&&h.decl&&h.decl[s]||[];
+    if(h&&S.phase==='play'&&dc.length){
+      if(h.tn===0)pj=`<span class="bub g">📣 ${dc.map(p=>PROJ_NAME[p.t]).join(' + ')}</span>`;
+      else if(h.tn===1&&h.projWin!=null&&team(s)===h.projWin)pj=dc.map(p=>`<span class="pjc"><em>${PROJ_NAME[p.t]}</em>${p.cards.slice(0,{sira:3,'50':4,'100':p.suit?5:4,'400':4}[p.t]).map(c=>`<i class="${su(c)==='H'||su(c)==='D'?'red':''}">${RN(rk(c))}${SYM[su(c)]}</i>`).join('')}</span>`).join('');
+    }
     const backs=(r!==0||ms<0)&&cnt&&S.phase!=='end'&&S.phase!=='over'?`<span class="backs">${'<i></i>'.repeat(cnt)}</span>`:'';
     const click=host&&x&&!x.bot&&s!==ms?`data-act="obotify" data-v="${s}" style="cursor:pointer"`:'';
     const isT=turn===s;
@@ -706,7 +798,8 @@ function tableView(){
     center=cur.map((t,i)=>`<div class="tcd r${rel(t.s)} ${old?'old':''} ${!old&&i===cur.length-1?'nw':''} ${old&&h.last&&h.last.w===t.s?'win':''}">${cardH(t.c)}</div>`).join('');
     if(!cur.length)center=`<div class="emb"><b>♠</b>أساطير البلوت</div>`;
   }
-  const felt=`<div class="otbl"><div class="sadu"></div><div class="felt">${[0,1,2,3].map(seatH).join('')}${center}</div><div class="sadu b"></div></div>`;
+  const mute=`<button class="omute" data-act="omute" aria-label="الصوت">${sndOn()?'🔊':'🔇'}</button>`;
+  const felt=`<div class="otbl"><div class="sadu"></div><div class="felt ${S.phase==='bid'||S.phase==='dbl'?'cmp':''}">${mute}${[0,1,2,3].map(seatH).join('')}${center}</div><div class="sadu b"></div></div>`;
   let hand='';
   if(ms>=0&&h&&h.hands&&(h.hands[ms]||[]).length){
     const cs=sortHand(h.hands[ms]||[],h),n=cs.length,myT=S.phase==='play'&&turn===ms;
@@ -829,6 +922,11 @@ document.addEventListener('click',async e=>{
   else if(a==='obid2')await act(st=>BE.doBid(st,ms,'hokm',v));
   else if(a==='odbl')await act(st=>BE.doDbl(st,ms,v));
   else if(a==='onext')await act(st=>{if(st.phase!=='end')throw SKIP;BE.doNext(st)},{noPrev:1});
+  else if(a==='omute'){
+    try{snd=!snd;localStorage.setItem('baloot_snd',snd?'1':'0')}catch(err){}
+    if(!sndOn())try{speechSynthesis.cancel()}catch(err){}
+    toast(sndOn()?'🔊 الصوت شغّال':'🔇 الصوت مكتوم');render();
+  }
   else if(a==='opj'){if(v==='clr')odecl={};else odecl[v]=((odecl[v]||0)+1)%3;render()}
   else if(a==='oqayd'){
     if(!confirm('تقيد عليهم؟ إذا ما فيه مخالفة تنقلب التوزيعة عليكم'))return;

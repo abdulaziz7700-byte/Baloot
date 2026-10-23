@@ -123,6 +123,7 @@ button.mt{cursor:pointer}
 .xsadu{height:8px;border-radius:5px;margin-bottom:10px;background:linear-gradient(135deg,#9b2d1f 25%,transparent 25%) -7px 0/14px 8px,linear-gradient(225deg,#9b2d1f 25%,transparent 25%) -7px 0/14px 8px,linear-gradient(315deg,#231a12 25%,transparent 25%) 0 0/14px 8px,linear-gradient(45deg,#231a12 25%,transparent 25%) 0 0/14px 8px,#efe3cf}
 .xseg{display:flex;background:rgba(0,0,0,.25);border-radius:14px;padding:4px}
 .xseg button{flex:1;border:0;background:none;color:#f1e4c8;font:inherit;font-weight:800;font-size:14px;padding:10px 4px;border-radius:11px;cursor:pointer}
+.xcnt{display:inline-block;min-width:20px;font-size:11px;background:rgba(0,0,0,.18);border-radius:99px;padding:1px 6px;margin-right:3px}
 .xseg button.on{background:#fbf3e3;color:#4a2c14;box-shadow:0 2px 6px rgba(0,0,0,.25)}
 .xsrc{font-size:12.5px;margin-top:9px;opacity:.9;text-align:center}
 .xtabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
@@ -382,10 +383,12 @@ function agg(gs){
   const P={};
   const gp=n=>P[n]=P[n]||{k:n,n:0,w:0,l:0,form:[],cs:0,ms:0,with:{},vs:{},sa:0};
   for(const g of gs){
+    const bot=n=>Array.isArray(g.bots)&&g.bots.includes(n);   // الكمبيوتر ما يدخل في الإحصائيات
     [[g.a,g.b,g.winner==='A'],[g.b,g.a,g.winner==='B']].forEach(([t,o,win])=>t.forEach(n=>{
+      if(bot(n))return;
       const x=gp(n);x.n++;win?x.w++:x.l++;x.form.push(win);x.cs=win?x.cs+1:0;x.ms=Math.max(x.ms,x.cs);
-      t.filter(m=>m!==n).forEach(m=>{const q=x.with[m]=x.with[m]||{n:0,w:0};q.n++;if(win)q.w++});
-      o.forEach(m=>{const q=x.vs[m]=x.vs[m]||{n:0,w:0};q.n++;if(win)q.w++});
+      t.filter(m=>m!==n&&!bot(m)).forEach(m=>{const q=x.with[m]=x.with[m]||{n:0,w:0};q.n++;if(win)q.w++});
+      o.filter(m=>!bot(m)).forEach(m=>{const q=x.vs[m]=x.vs[m]||{n:0,w:0};q.n++;if(win)q.w++});
     }));
   }
   return Object.values(P).map(x=>(x.net=x.w-x.l,x.r=x.w/x.n,x)).sort((a,b)=>b.net-a.net||b.w-a.w||a.n-b.n||a.k.localeCompare(b.k));
@@ -418,11 +421,12 @@ function rowsH(pl,T,need,clickable){
     <div class="xrt"><b style="color:${x.net>=0?'var(--g2)':'var(--bad)'}">${sgn(x.net)}</b><small>${x.w} فوز · ${x.l} خسارة</small></div></div>`}).join('');
 }
 const gameLine=(g,hl)=>{const wa=g.winner==='A',W=wa?g.a:g.b,L=wa?g.b:g.a,ws=Math.max(g.sa,g.sb),ls=Math.min(g.sa,g.sb);
-  return `<div class="xg"><span class="w ${hl&&W.includes(hl)?'hl':''}">🏆 ${tn(W)}</span><b dir="ltr">${ws} - ${ls}</b><span class="l">${tn(L)}</span></div>`};
+  const nn=a=>a.map(n=>(Array.isArray(g.bots)&&g.bots.includes(n)?'🤖 ':'')+esc(n)).join(' و ');
+  return `<div class="xg"><span class="w ${hl&&W.includes(hl)?'hl':''}">🏆 ${nn(W)}</span><b dir="ltr">${ws} - ${ls}</b><span class="l">${nn(L)}</span></div>`};
 function heroH(){
   const v=[['night','🌙','الليلة'],['cum','🏆','التراكمي'],['player','🪪','اللاعب'],['pair','🤝','الشراكات']];
   return `<div class="xhero"><div class="xsadu"></div>
-  <div class="xseg">${[['off','🃏 جلسات المجلس'],['on','🌐 الأونلاين']].map(([k,l])=>`<button class="${smode===k?'on':''}" data-act="s2m" data-v="${k}">${l}</button>`).join('')}</div>
+  <div class="xseg">${[['off','🃏 جلسات المجلس',games.filter(g=>!g.online).length],['on','🌐 الأونلاين',games.filter(g=>g.online).length]].map(([k,l,n])=>`<button class="${smode===k?'on':''}" data-act="s2m" data-v="${k}">${l} <small class="xcnt">${n}</small></button>`).join('')}</div>
   <div class="xsrc">${smode==='off'?'📍 من <b>حاسبة التسجيل</b> فقط، والأونلاين ما يدخل هنا':'📍 من <b>الأونلاين</b> فقط، وصكات المجلس ما تدخل هنا'}</div></div>
   <div class="xtabs">${v.map(([k,i,l])=>`<button class="${sview2===k?'on':''}" data-act="s2v" data-v="${k}"><span>${i}</span>${l}</button>`).join('')}</div>`;
 }
@@ -908,6 +912,6 @@ db.doc('live/tourney').onSnapshot(s=>{
   loaded.t=1;render();
 },e=>{console.error(e);T=null;loaded.t=1;render()});
 </script>
-<script src="online.js?v=2"></script>
+<script src="online.js?v=3"></script>
 </body>
 </html>
