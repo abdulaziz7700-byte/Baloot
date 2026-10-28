@@ -214,6 +214,46 @@ button.mt{cursor:pointer}
 /* دوائر النتيجة: دائرية دائماً وثابتة فوق */
 .bd{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--bg);padding:8px 14px 10px;margin:0 -14px;align-items:center;box-shadow:0 8px 12px -10px rgba(0,0,0,.25)}
 .cir{flex:0 0 auto;width:min(42vw,170px);height:min(42vw,170px);aspect-ratio:auto}
+/* ===== توزيع الفرق ===== */
+@keyframes dIn{0%{opacity:0;transform:translateY(18px) scale(.9) rotateX(70deg)}60%{opacity:1;transform:translateY(-3px) scale(1.02) rotateX(0)}100%{opacity:1;transform:none}}
+@keyframes dGlow{0%,100%{box-shadow:0 8px 20px rgba(50,25,5,.18)}50%{box-shadow:0 8px 26px rgba(224,184,74,.55)}}
+.dhero{border-radius:20px;padding:12px 14px 14px;color:#fbf3e3;background:linear-gradient(160deg,#8a5a33,#4e2d17 60%,#3f2410);box-shadow:0 10px 22px rgba(50,25,5,.22);margin-bottom:12px}
+.dh{display:flex;align-items:center;gap:12px}.dic{font-size:34px;line-height:1}
+.dh b{display:block;font-size:20px}.dh small{font-size:13px;opacity:.85}
+.dtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.dtop b{font-size:16px}
+.dlink{border:0;background:none;color:var(--acc);font:inherit;font-weight:800;cursor:pointer;padding:2px 4px}
+.dchips{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:8px}
+.dchip{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 4px 8px;border-radius:16px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-weight:700;font-size:13.5px;cursor:pointer;transition:transform .12s,border-color .12s,background .12s}
+.dchip span:not(.dav){max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dchip i{position:absolute;top:5px;left:6px;width:20px;height:20px;border-radius:50%;background:var(--g);color:#fff;font-style:normal;font-size:12px;display:grid;place-items:center;opacity:0;transform:scale(.5);transition:.15s}
+.dchip.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--card));transform:translateY(-2px)}
+.dchip.on i{opacity:1;transform:none}
+.dchip:not(.on) .dav{filter:grayscale(.7);opacity:.75}
+.dav{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:18px;color:#4a2c14;background:linear-gradient(#fbf3e3,#e3cca5);border:2px solid #c9a46a;flex:0 0 auto}
+.dbar{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:20;display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:10px 12px;box-shadow:0 10px 26px rgba(0,0,0,.18)}
+.dbar>div{flex:1;font-size:14px}.dbar>div b{font-size:24px;color:var(--acc)}.dbar small{display:block;color:var(--mut);font-size:12px}
+.dbar .btn{flex:0 0 auto;width:auto;padding:13px 18px}
+.dbar .btn:disabled{opacity:.45}
+.dmeta{text-align:center;font-size:12.5px;color:var(--mut);margin:-2px 0 10px}
+.dteams{display:grid;grid-template-columns:1fr;gap:10px;perspective:800px}
+@media (min-width:520px){.dteams{grid-template-columns:1fr 1fr}}
+.dteam{position:relative;border-radius:20px;padding:12px 14px 14px;color:#fbf3e3;background:radial-gradient(120% 120% at 85% 0,#2a8a64,#0d3527 75%);opacity:0;animation:dIn .6s cubic-bezier(.2,.8,.3,1.2) forwards,dGlow 2.4s ease-in-out 1;border:1.5px solid rgba(224,184,74,.45)}
+.dnum{position:absolute;top:10px;left:12px;width:28px;height:28px;border-radius:50%;background:#e0b84a;color:#2b1a0e;font-weight:800;display:grid;place-items:center;font-size:14px}
+.dtn{font-weight:800;font-size:13px;color:#ffd66b;opacity:.85;margin-bottom:10px;padding-right:2px}
+.dpair{display:flex;align-items:center;justify-content:space-around;gap:6px}
+.dpl{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;flex:1}
+.dpl .dav{width:54px;height:54px;font-size:24px;border:3px solid #e0b84a}
+.dpl b{font-size:15px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.damp{font-size:22px;font-weight:800;color:#e0b84a}
+.dspare{margin-top:10px;text-align:center;font-size:14px;background:color-mix(in srgb,var(--acc) 12%,var(--card));border:1px dashed var(--acc);border-radius:14px;padding:10px;opacity:0;animation:dIn .5s forwards}
+.dact{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.dmatch{display:grid;gap:8px}
+.dmatch button span{flex:1;font-size:14px}.dmatch button span:last-child{text-align:left}
+.dmatch button{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-weight:800;font-size:15px;padding:12px 14px;border-radius:14px;cursor:pointer}
+.dmatch button em{font-style:normal;font-size:12px;color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,transparent);border-radius:99px;padding:2px 10px}
+.dmatch button:active{transform:scale(.98)}
+.dopen{display:flex;align-items:center;gap:12px;width:100%;border:0;border-radius:18px;padding:14px;margin-bottom:12px;cursor:pointer;color:#fbf3e3;font:inherit;text-align:right;background:linear-gradient(160deg,#8a5a33,#4e2d17 60%,#3f2410);box-shadow:0 8px 18px rgba(50,25,5,.2)}
+.dopen .dic{font-size:30px}.dopen b{display:block;font-size:16px}.dopen small{font-size:12.5px;opacity:.85}.dopen .go{margin-right:auto;font-size:22px;color:#e0b84a}
 </style>
 
 </head>
@@ -276,6 +316,7 @@ function render(){
   if(!me||tab==='who')m.innerHTML=whoView();
   else if(tab==='game')m.innerHTML=live&&live.active&&!(live.finished&&nextSetup)?liveView():setupView();
   else if(tab==='tour')m.innerHTML=tourView();
+  else if(tab==='draw')m.innerHTML=drawView();
   else if(tab==='online')m.innerHTML=window.oView?oView():'<div class="card empty">جاري التحميل…</div>';
   else if(tab==='stats')m.innerHTML=statsView();
   else m.innerHTML=histView();
@@ -300,7 +341,7 @@ function setupView(){
   }
   const sel=i=>`<select data-act="sel" data-i="${i}">${opt(setup.p[i])}</select>`;
   const nx=nextSetup&&live&&live.finished;
-  return `<div class="card"><h2>صكة جديدة</h2>${setup.cont?'<p class="note">الفريق الفايز مستمر، غيّر المتحدين لو تبغى</p>':''}
+  return `<button class="dopen" data-act="dopen"><span class="dic">🎲</span><span><b>توزيع الفرق</b><small>${D&&D.teams&&Date.now()-D.ts<12*3600e3?'آخر قرعة: '+D.teams.length+' فرق، اضغط تشوفها':'اختر الحاضرين ونوزعكم كل اثنين مع بعض'}</small></span><span class="go">‹</span></button><div class="card"><h2>صكة جديدة</h2>${setup.cont?'<p class="note">الفريق الفايز مستمر، غيّر المتحدين لو تبغى</p>':''}
   <div class="team"><label>${setup.cont?'الفريق الفايز (مستمر)':'الفريق الأول'}</label>${sel(0)}${sel(1)}</div>
   <div class="vs">ضد</div>
   <div class="team"><label>${setup.cont?'الفريق المتحدي':'الفريق الثاني'}</label>${sel(2)}${sel(3)}</div>
@@ -876,6 +917,87 @@ document.addEventListener('input',e=>{
 });
 $('#who').addEventListener('click',()=>{tab='who';render()});
 
+/* ================= توزيع الفرق =================
+   أي واحد يختار الحاضرين، والتطبيق يوزعهم كل اثنين مع بعض.
+   النتيجة تنحفظ في live/draw وتظهر لكل الأجهزة مع حركة الكشف. */
+let D=null,dPick=null,dEdit=false,dSeen='',dSeenAt=0,dSpoke='';
+function dLoad(){if(dPick)return;dPick=new Set(D&&D.players?D.players.filter(p=>players.includes(p)):[])}
+// يوزع ويحاول ما يكرر نفس الشريك من القرعة اللي قبل
+function dMake(list){
+  const prev=new Set((D&&D.teams||[]).map(t=>[...t.p].sort().join('|')));
+  let best=null,bs=1e9;
+  for(let k=0;k<60;k++){
+    const s=shuf(list),teams=[];
+    for(let i=0;i+1<s.length;i+=2)teams.push([s[i],s[i+1]]);
+    const rep=teams.filter(t=>prev.has([...t].sort().join('|'))).length;
+    if(rep<bs){bs=rep;best={s,teams};if(!rep)break}
+  }
+  const nm=shuf(TNAMES);
+  return {id:Date.now()+'_'+rnd(1e6),ts:Date.now(),by:me||'',players:list,
+    teams:best.teams.map((p,i)=>({n:nm[i%nm.length],p})),spare:list.length%2?best.s[best.s.length-1]:null};
+}
+async function dSave(o){
+  D=o;dEdit=false;render();dReveal();
+  try{await db.doc('live/draw').set(o)}catch(e){console.error(e);alert('انحفظت القرعة على جهازك بس، تعذر مشاركتها (تأكد من الإنترنت)')}
+}
+function dReveal(){
+  if(!D||!D.teams)return;
+  if(dSpoke===D.id)return;dSpoke=D.id;
+  if(Date.now()-(D.ts||0)>60000)return;          // قرعة قديمة: بدون صوت
+  D.teams.forEach((t,i)=>setTimeout(()=>{if(D&&D.id===dSpoke){boom();speak('الفريق '+(i+1)+'، '+t.p.join(' و '))}},400+i*1500));
+  setTimeout(()=>{if(D&&D.id===dSpoke){fanfare();try{confetti()}catch(e){}}},600+D.teams.length*1500);
+}
+const dAv=n=>`<span class="dav">${esc(String(n).trim().charAt(0)||'؟')}</span>`;
+function drawView(){
+  dLoad();
+  if(D&&D.id&&D.id!==dSeen){dSeen=D.id;dSeenAt=Date.now()}
+  const hero=`<div class="dhero"><div class="xsadu"></div><div class="dh"><span class="dic">🎲</span><div><b>توزيع الفرق</b><small>اختر الحاضرين، ونوزعكم كل اثنين مع بعض</small></div></div></div>`;
+  const back=`<button class="btn alt" data-act="tab" data-v="game" style="margin-top:4px">↩ رجوع للصكة</button>`;
+  // صفحة النتيجة
+  if(D&&D.teams&&!dEdit){
+    const el=(Date.now()-dSeenAt)/1000,step=1.5;
+    const card=(t,i)=>`<div class="dteam" style="--i:${i};animation-delay:${(i*step+.3-el).toFixed(2)}s"><div class="dnum">${i+1}</div><div class="dtn">الفريق ${i+1}</div>
+      <div class="dpair">${t.p.map(n=>`<div class="dpl">${dAv(n)}<b>${esc(n)}</b></div>`).join('<span class="damp">+</span>')}</div></div>`;
+    const spare=D.spare?`<div class="dspare" style="animation-delay:${(D.teams.length*step+.3-el).toFixed(2)}s">⏳ <b>${esc(D.spare)}</b> احتياط هالمرة، يدخل مكان أول فريق يخسر</div>`:'';
+    const ms=[];for(let i=0;i<D.teams.length;i++)for(let j=i+1;j<D.teams.length;j++)ms.push([i,j]);
+    const matches=D.teams.length>=2?`<div class="xsec">🎴 ابدأ صكة</div><div class="dmatch">${ms.slice(0,6).map(([i,j])=>`<button data-act="dgo" data-v="${i},${j}"><span>${tn(D.teams[i].p)}</span><em>ضد</em><span>${tn(D.teams[j].p)}</span></button>`).join('')}</div><p class="note">تضغط على المواجهة وتنفتح الحاسبة بالفريقين على طول.</p>`:'';
+    const when=new Date(D.ts).toLocaleString('ar-SA-u-ca-gregory-nu-latn',{weekday:'long',hour:'numeric',minute:'2-digit'});
+    return hero+`<div class="dmeta">${D.players.length} لاعبين · ${D.teams.length} فرق · ${when}${D.by?' · وزّعها '+esc(D.by):''}</div>
+    <div class="dteams">${D.teams.map(card).join('')}</div>${spare}
+    <div class="dact"><button class="btn gold" data-act="dagain">🔁 أعد التوزيع</button><button class="btn alt" data-act="dedit">✏️ غيّر الحاضرين</button></div>${matches}${back}`;
+  }
+  // صفحة الاختيار
+  const n=dPick.size,odd=n%2===1;
+  const chips=players.map(p=>`<button class="dchip ${dPick.has(p)?'on':''}" data-act="dtog" data-v="${esc(p)}">${dAv(p)}<span>${esc(p)}</span><i>✓</i></button>`).join('');
+  return hero+`<div class="card"><div class="dtop"><b>مين حاضر الليلة؟</b><span><button class="dlink" data-act="dall">الكل</button> · <button class="dlink" data-act="dnone">مسح</button></span></div>
+    <div class="dchips">${chips||'<div class="note">ما فيه لاعبين، أضف من تحت</div>'}</div>
+    <div class="row" style="margin-top:12px"><input id="dnp" placeholder="لاعب جديد؟ اكتب اسمه"><button class="btn alt" style="flex:0 0 90px" data-act="dadd">إضافة</button></div></div>
+    <div class="dbar"><div><b>${n}</b> مختارين${n>=4&&odd?'<small>العدد فردي، واحد بيكون احتياط</small>':n<4?'<small>اختر 4 على الأقل</small>':`<small>${n/2} فرق</small>`}</div>
+    <button class="btn gold" data-act="dgo2" ${n<4?'disabled':''}>🎲 وزّع الفرق</button></div>
+    ${D&&D.teams?`<button class="btn alt" data-act="dcancel" style="margin-top:8px">رجوع لآخر قرعة</button>`:back}`;
+}
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-act^="d"]');if(!b)return;
+  const a=b.dataset.act,v=b.dataset.v;
+  if(!['dtog','dall','dnone','dadd','dgo2','dagain','dedit','dcancel','dgo','dopen'].includes(a))return;
+  if(a==='dopen'){tab='draw';dPick=null;render();window.scrollTo(0,0);return}
+  dLoad();
+  if(a==='dtog'){dPick.has(v)?dPick.delete(v):dPick.add(v);try{tick()}catch(err){}render()}
+  else if(a==='dall'){players.forEach(p=>dPick.add(p));render()}
+  else if(a==='dnone'){dPick.clear();render()}
+  else if(a==='dadd'){const n=await addPlayer($('#dnp').value);if(n){dPick.add(n);render()}}
+  else if(a==='dgo2'){if(dPick.size<4)return;await dSave(dMake(shuf([...dPick])));window.scrollTo({top:0,behavior:'smooth'})}
+  else if(a==='dagain'){if(!D)return;await dSave(dMake(shuf(D.players)));window.scrollTo({top:0,behavior:'smooth'})}
+  else if(a==='dedit'){dPick=new Set(D.players);dEdit=true;render()}
+  else if(a==='dcancel'){dEdit=false;render()}
+  else if(a==='dgo'){
+    const [i,j]=v.split(',').map(Number),A=D.teams[i],B=D.teams[j];
+    if(live&&live.active&&!live.finished&&!confirm('فيه صكة شغالة الحين، تبدأ صكة جديدة بدالها؟'))return;
+    await saveLive({active:true,finished:false,gid:Date.now(),owner:devId,a:[...A.p],b:[...B.p],target:152,rounds:[],gameId:null,win:null});
+    nextSetup=false;tab='game';render();speak(A.p.join(' و ')+' ضد '+B.p.join(' و ')+'، بالتوفيق');window.scrollTo(0,0);
+  }
+});
+
 firebase.initializeApp({
   apiKey:"AIzaSyCjxBpOA1_nQn66xGakdQI_n2etsxR5M9c",
   authDomain:"baloot-fe8b7.firebaseapp.com",
@@ -901,6 +1023,13 @@ db.doc('live/current').onSnapshot(s=>{
   if(!nl||!nl.active)editTeams=false;
   live=nl;loaded.l=1;render();
 },err);
+db.doc('live/draw').onSnapshot(s=>{
+  const nD=s.exists?s.data():null,fresh=nD&&nD.id&&(!D||D.id!==nD.id)&&Date.now()-(nD.ts||0)<60000;
+  D=nD;
+  if(fresh&&me&&!(live&&live.active&&!live.finished&&live.owner===devId)){tab='draw';dEdit=false}
+  if(D&&tab==='draw')dReveal();
+  render();
+},e=>console.error(e));
 db.doc('live/tourney').onSnapshot(s=>{
   const nT=s.exists?s.data():null,pT=T;T=nT;
   if(pT&&nT&&pT.tid!==nT.tid)swp=null;
@@ -912,6 +1041,6 @@ db.doc('live/tourney').onSnapshot(s=>{
   loaded.t=1;render();
 },e=>{console.error(e);T=null;loaded.t=1;render()});
 </script>
-<script src="online.js?v=3"></script>
+<script src="online.js?v=6"></script>
 </body>
 </html>
