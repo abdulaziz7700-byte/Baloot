@@ -375,12 +375,12 @@ function liveView(){
     const nb=live.tour?'<button class="btn gold" data-act="tab" data-v="tour">🏆 رجوع للبطولة</button>':'<button class="btn gold" data-act="next">صكة جديدة، الفايز مستمر</button>';
     mid=`<div class="card" style="text-align:center"><h2>🏆 فاز ${tn(w)}</h2><div class="note">${sa} - ${sb}</div><div class="row" style="margin-top:10px">${own?'<button class="btn alt" data-act="undo">↩ تراجع</button>':''}${nb}</div></div>`;
   }else if(own){
-    mid=`<div class="card"><h2>مشترى جديد</h2><div class="row"><input id="ia" type="number" inputmode="numeric" placeholder="لنا"><input id="ib" type="number" inputmode="numeric" placeholder="لهم"></div><button class="btn" style="margin-top:10px" data-act="round">سجّل المشترى</button></div>`;
+    mid=`<div class="card"><h2>مشترى جديد</h2><div class="row"><input id="ia" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" dir="ltr" placeholder="لنا"><input id="ib" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" dir="ltr" placeholder="لهم"></div><button class="btn" style="margin-top:10px" data-act="round">سجّل المشترى</button></div>`;
   }else{
     mid=`<div class="card" style="text-align:center"><div class="note">أنت تتابع الصكة، التسجيل من الجهاز اللي بدأها</div></div>`;
   }
   const rows=r.map((x,i)=>i===editIdx&&own&&!fin
-    ?`<li style="gap:6px;align-items:center"><span>${i+1}</span><input id="ea" type="number" inputmode="numeric" value="${x.a}" style="width:64px;padding:6px"><input id="eb" type="number" inputmode="numeric" value="${x.b}" style="width:64px;padding:6px"><span><button class="btn" style="padding:6px 10px;width:auto" data-act="esave" data-v="${i}">حفظ</button> <button class="btn alt" style="padding:6px 10px;width:auto" data-act="ecancel">إلغاء</button></span></li>`
+    ?`<li style="gap:6px;align-items:center"><span>${i+1}</span><input id="ea" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" dir="ltr" value="${x.a}" style="width:64px;padding:6px"><input id="eb" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" dir="ltr" value="${x.b}" style="width:64px;padding:6px"><span><button class="btn" style="padding:6px 10px;width:auto" data-act="esave" data-v="${i}">حفظ</button> <button class="btn alt" style="padding:6px 10px;width:auto" data-act="ecancel">إلغاء</button></span></li>`
     :`<li style="align-items:center"><span>${i+1}</span><span>${x.a}</span><span>${x.b}</span><span style="min-width:60px;text-align:left">${own&&!fin&&i===r.length-1?`<button class="btn alt" style="padding:4px 10px;width:auto" data-act="eedit" data-v="${i}">تعديل</button>`:''}</span></li>`).join('');
   const lt=live.tour,tb=lt&&T&&T.tid===lt.tid&&T.teams?`<div class="tbanner">🏆 ${esc(rname(parseInt(lt.k.slice(1))))}: ${esc(T.teams[lt.ta].n)} ضد ${esc(T.teams[lt.tb].n)}</div>`:'';
   return `${tb}${bd}<div style="height:12px"></div>${mid}<div style="height:12px"></div>
@@ -633,7 +633,9 @@ async function commit(rounds){
   await saveLive(o);
   if(done&&live.tour){const q=live.tour;await tourSetResult(q.k,sa>sb?q.ta:q.tb,sa,sb,q.tid)}
 }
-const num=v=>{v=(v||'').trim();return v===''?0:parseInt(v)};
+// يحول الأرقام العربية (٠١٢) والفارسية (۰۱۲) لإنجليزية، ويشيل أي شي غير رقم
+const enDigits=v=>String(v||'').replace(/[٠-٩]/g,d=>d.charCodeAt(0)-1632).replace(/[۰-۹]/g,d=>d.charCodeAt(0)-1776);
+const num=v=>{v=enDigits(v).replace(/[^0-9]/g,'');return v===''?0:parseInt(v,10)};
 document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act,v=b.dataset.v;
@@ -912,8 +914,12 @@ document.addEventListener('change',e=>{
   const ts=e.target.closest('[data-act="tsel"]');if(ts){tm[+ts.dataset.i]=ts.value}
 });
 document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t&&t.getAttribute&&t.getAttribute('inputmode')==='numeric'){const v=enDigits(t.value).replace(/[^0-9]/g,'');if(v!==t.value)t.value=v}
   const id=e.target.id;
-  if((id==='ia'||id==='ea')&&e.target.value.length>=2){const n=$(id==='ia'?'#ib':'#eb');if(n){n.focus();try{n.select()}catch(err){}}}
+  // رقمين = ينتقل للخانة الثانية (من لنا للهم، أو العكس إذا الثانية فاضية)
+  const pair={ia:'#ib',ib:'#ia',ea:'#eb',eb:'#ea'}[id];
+  if(pair&&e.target.value.length>=2){const n=$(pair);if(n&&(id==='ia'||id==='ea'||!n.value)){n.focus();try{n.select()}catch(err){}}}
 });
 $('#who').addEventListener('click',()=>{tab='who';render()});
 
